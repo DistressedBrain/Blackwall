@@ -34,14 +34,35 @@ and the **quarantine vault**. The engine runs in the **Blackwall
 service**, which sees which program made each change, or inside the app
 when the service isn't installed. Without the Phase 3 kernel driver it
 can't hold a change back: it sees it right after it happens, asks you,
-and puts the previous version back if you say no. Sample data is still
-available with `Blackwall.exe --demo`. Closed, Blackwall keeps running in
+and puts the previous version back if you say no. Microsoft Defender
+checks what AI agents and downloaded programs run, a program that
+scrambles many files is stopped and its changes undone, and the Network
+page shows which programs are online. Sample data is still available with
+`Blackwall.exe --demo`. Closed, Blackwall keeps running in
 the notification area and raises Windows notifications for changes. New
 versions are published as GitHub Releases: Blackwall finds them, shows what
 changed, and installs one when you click Install, after checking its
-checksum. Build, install and release instructions are in
-[`src/README.md`](src/README.md); changes are listed in
-[`CHANGELOG.md`](CHANGELOG.md).
+checksum. Changes are listed in [`CHANGELOG.md`](CHANGELOG.md).
+
+### Install
+
+Blackwall is free to use; the source code is not public. It needs Windows
+10 or 11 (64-bit) and the [.NET 10 Desktop
+Runtime](https://dotnet.microsoft.com/download/dotnet/10.0).
+
+1. Download `Blackwall-<version>-win-x64.zip` and its `.sha256` from
+   [Releases](https://github.com/DistressedBrain/Blackwall/releases), and
+   check they match: `(Get-FileHash .\Blackwall-<version>-win-x64.zip).Hash`.
+2. Unpack it to `C:\Program Files\Blackwall` (as administrator).
+3. In an administrator PowerShell, install and start the service:
+   `& "C:\Program Files\Blackwall\Blackwall.Service.exe" install`
+4. Start `Blackwall.exe` from the Start menu or Explorer. The sidebar should
+   say **Service connected**.
+
+To remove it: `& "C:\Program Files\Blackwall\Blackwall.Service.exe" uninstall`,
+then delete the folder and `C:\ProgramData\Blackwall`. Without the service,
+`Blackwall.exe` still protects your folders from inside the app, but can't
+tell which program made a change.
 
 <p align="center">
   <img src="docs/images/overview.png" alt="Overview: protection status, today's counts, recent activity and protection modules" width="900">
@@ -418,14 +439,49 @@ over everyday work.
 -   Keep policy evaluation and UI interaction in user mode.
 -   Test failure handling, performance, signing, installation, and
     removal.
+-   With the driver: **real-time scanning** (on open and run), **stopping
+    launches** before they start, **tamper protection** for Blackwall and
+    its vault, **rootkit and boot checks**, and **network filtering** in
+    the kernel (a Windows Filtering Platform callout, the way Portmaster
+    does it).
 
 ### Phase 4 --- Advanced protection
 
--   Add change previews and file versioning.
--   Improve detection of delegated and indirect process execution.
--   Add tamper monitoring and policy protection.
--   Evaluate ransomware-like behaviour and other unauthorized
-    modifications.
+Done in user mode first, in this order:
+
+1.  **Malware scanning through Microsoft Defender** (built). Windows' scanning
+    interface (AMSI) checks unsigned programs from Downloads and Temp, and
+    the scripts and commands AI agents run, against Defender's signatures,
+    without a signature database of our own.
+2.  **Ransomware detection** (built). A program that rewrites many protected
+    files quickly with random-looking content, or touches trap files, is
+    stopped and all of its changes are undone from the saved versions.
+3.  **Network monitor** (built, except DNS names and asking before a
+    first connection, which need live network tracing). Which programs and AI agents connect where (with
+    the DNS name), live and as history; a per-program "block internet"
+    through the Windows Firewall; ask when an AI agent or an unknown
+    program goes online for the first time. Ideas from
+    [Portmaster](https://github.com/safing/portmaster) (GPL-3.0, ideas
+    only, no code).
+4.  **Scans** (built). "Scan this folder" and scheduled scans of Downloads,
+    startup entries and protected folders.
+5.  **USB and removable drives:** scan when plugged in, optional "ask
+    before running programs from a USB drive".
+6.  **Sandboxed first run:** start an unknown program in Windows Sandbox
+    instead of on the real system.
+7.  **File reputation (opt-in):** look up a file's hash with a public
+    malware database. Off by default, because it sends the hash out.
+8.  **Web and download protection:** dangerous-site and phishing lists
+    for downloads, via DNS filtering.
+9.  Change previews and file versioning (done), delegated-execution
+    detection, policy protection.
+
+### Phase 5 --- Extras
+
+-   Secure DNS (DNS over HTTPS) and tracker blocking.
+-   VPN, password manager, parental controls.
+-   PC clean-up (beyond Hidden files) and start-up manager.
+-   Email attachment scanning.
 
 ## What we've learned so far
 
@@ -445,7 +501,7 @@ written from scratch; these projects are used for ideas only.
 | 8 | **File scanning comes later** | A pattern engine such as YARA-X fits Phase 4. ClamAV could only run as a separate program because of its licence. |
 | 9 | **Isolation is an alternative to blocking** | Sandboxie shows that untrusted tools can be run in a sandbox, where their changes stay contained, instead of being refused outright. |
 | 10 | **Vet before trusting** | None of the checked projects hid malware, but several ship real malicious test samples and suggest `irm … \| iex` installs. Always check SHA-256 and signatures, and test in a VM. |
-| 11 | **Licences decide what we can reuse** | MIT, BSD and Apache-2.0 fit GPL-3.0. MS-PL and GPL-2.0-only can't be mixed in, and "source-available" licences (OpenEDR, Elastic) are out. |
+| 11 | **Licences decide what we can reuse** | Blackwall is closed-source freeware, so only permissive code (MIT, BSD, Apache-2.0) may go in, with its notice shipped in `THIRD-PARTY-NOTICES.txt`. GPL, AGPL and MS-PL code can't be mixed in, and "source-available" licences (OpenEDR, Elastic) are out. A GPL tool such as ClamAV could only run as a separate program. |
 | 12 | **We build our own** | Blackwall is written from scratch on documented Windows APIs. The projects above are only for learning. |
 | 13 | **Live tracing needs admin rights** | Starting an ETW session needs administrator rights. Without them the process watcher checks once a second, which can miss processes that exit within that second. |
 | 14 | **Windows reuses process IDs** | A parent ID alone can point at the wrong, newer process. A parent only counts if it started before its child and was still running when the child started. |
@@ -522,6 +578,15 @@ features described here are exploratory and require engineering, threat
 modeling, testing, and security review before they can be relied upon. A
 prototype must not be presented as production-grade antivirus
 protection.
+
+## Licence
+
+Blackwall is **freeware**: free to use at home and at work, all rights
+reserved. You may not sell, redistribute, modify or reverse-engineer it.
+It comes without any warranty. See [`LICENSE`](LICENSE) for the terms and
+[`THIRD-PARTY-NOTICES.txt`](THIRD-PARTY-NOTICES.txt) for the components it
+includes. Source code that was published in this repository before
+version 0.2.0, under the GPL-3.0, keeps that licence.
 
 ------------------------------------------------------------------------
 

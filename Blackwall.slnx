@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Blackwall.Client.Windows/Blackwall.Client.Windows.csproj" />
+    <Project Path="src/Blackwall.Core/Blackwall.Core.csproj" />
+    <Project Path="src/Blackwall.Service/Blackwall.Service.csproj" />
+    <Project Path="src/Blackwall.Windows/Blackwall.Windows.csproj" />
+  </Folder>
+</Solution>

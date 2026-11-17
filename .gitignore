@@ -1,0 +1,14 @@
+## .NET / Visual Studio
+bin/
+obj/
+.vs/
+*.user
+*.suo
+*.rsuser
+*.DotSettings.user
+TestResults/
+publish/
+
+## OS
+Thumbs.db
+.DS_Store

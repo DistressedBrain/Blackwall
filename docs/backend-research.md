@@ -24,7 +24,8 @@ Everything was done **read-only through GitHub's web APIs**. Nothing was cloned,
    text and searched for Defender tampering, Base64/encoded PowerShell, `iex`/pipe-to-shell,
    LOLBins (`certutil`, `mshta`, `rundll32`...), autorun persistence, downloads and long encoded blobs.
    Every hit was read in context.
-6. **Licence** compatibility with Blackwall's GPL-3.0.
+6. **Licence** compatibility with Blackwall's licence (GPL-3.0 when this was written; closed-source
+   freeware from 0.2.0, see below).
 
 **Limits:** a text scan cannot prove a project is clean. It catches hidden downloaders, droppers
 and obfuscated scripts, but not malicious logic written in ordinary-looking source code. Compiled
@@ -47,7 +48,7 @@ don't fit a protection product.
 | [RafWu/RansomWatch](https://github.com/RafWu/RansomWatch) | two students, 93★ | **stale since 2020** | none | none | MIT (stated in README, no LICENSE file) | **Ideas only**: process groups, entropy, trap files |
 | [0xrawsec/whids](https://github.com/0xrawsec/whids) | org, 1.3k★ | **stale since 2023-02** | none | build fetches rules from the author's own repo with a SHA-256 file | AGPL-3.0 | **Reference** only |
 | [SigmaHQ/sigma](https://github.com/SigmaHQ/sigma) | SigmaHQ org, 11k★ | active | none | test scripts download sample event logs | rules: DRL 1.1 (attribution required) | **Use** the rule format; credit if we ship rules |
-| [Cisco-Talos/clamav](https://github.com/Cisco-Talos/clamav) | Cisco Talos org, since 2012 | active | malformed CAB/ISO/PE test files (CVE reproductions) | dev containers install Rust via `rustup \| sh` (standard) | GPL-2.0-only | **Optional** as a separate `clamd` process; don't link it into GPL-3 code |
+| [Cisco-Talos/clamav](https://github.com/Cisco-Talos/clamav) | Cisco Talos org, since 2012 | active | malformed CAB/ISO/PE test files (CVE reproductions) | dev containers install Rust via `rustup \| sh` (standard) | GPL-2.0-only | **Optional** as a separate `clamd` process; never link it into Blackwall |
 | [ComodoSecurity/openedr](https://github.com/ComodoSecurity/openedr) | Comodo org | slow | **208 prebuilt `.lib` + 208 `.pdb`** (opaque Boost/AWS builds), EXEs that are only LFS pointers | not scanned in full (53,700 files) | **Comodo "available source" licence (CASL)**, not open source | **Avoid** |
 
 No project showed Defender tampering, encoded PowerShell, hidden autorun persistence or
@@ -62,11 +63,14 @@ obfuscated payloads in its scripts.
 - **Don't install anything with `irm ... | iex` or `curl ... | sh`**, even though Fibratus and
   Rustinel suggest it. Download the release, check the SHA-256 against the published checksum, and
   check the signature with `Get-AuthenticodeSignature`.
-- **Licences:**
-  - MIT, BSD and Apache-2.0 code can go into Blackwall (GPL-3.0).
-  - MS-PL (the driver samples) can't be mixed into GPL code. Keep our Phase 3 driver as its own
-    component under its own licence, talking to the service over the filter port.
-  - GPL-2.0-only (ClamAV) can't be linked into GPL-3.0 code. Run it as a separate process if we use it.
+- **Licences** (Blackwall is closed-source freeware from 0.2.0):
+  - MIT, BSD and Apache-2.0 code can go into Blackwall, as long as its notice ships in
+    `THIRD-PARTY-NOTICES.txt` (Apache-2.0 also needs its NOTICE file, if any).
+  - GPL, AGPL and LGPL-static code can't go in at all: it would require publishing Blackwall's source.
+    Sandboxie (GPL-3.0) and WHIDS (AGPL-3.0) stay references for ideas only.
+  - MS-PL (the driver samples) allows closed-source use, but MS-PL code must keep its licence text and
+    can't be relicensed. Studying it and writing our own driver avoids the question.
+  - GPL-2.0-only (ClamAV) could only run as a separate program Blackwall talks to, never linked in.
   - The Elastic detection rules (Elastic License 2.0) and OpenEDR (CASL) are not compatible.
 
 ## What this means for the back-end

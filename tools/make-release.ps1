@@ -47,6 +47,11 @@ foreach ($f in 'Blackwall.exe', 'Blackwall.dll', 'Blackwall.Service.exe', 'Black
 }
 Get-ChildItem $stage -Filter *.pdb | Remove-Item
 
+# The licence and the third-party notices travel with every copy (the MIT licence of our dependencies requires it).
+foreach ($f in 'LICENSE', 'THIRD-PARTY-NOTICES.txt') { if (-not (Test-Path $f)) { throw "$f is missing." } }
+Copy-Item 'LICENSE' (Join-Path $stage 'LICENSE.txt')
+Copy-Item 'THIRD-PARTY-NOTICES.txt' (Join-Path $stage 'THIRD-PARTY-NOTICES.txt')
+
 $zip = Join-Path $out "$name.zip"
 if (Test-Path $zip) { Remove-Item $zip }
 Add-Type -AssemblyName System.IO.Compression.FileSystem

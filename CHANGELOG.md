@@ -13,6 +13,10 @@ under Settings → Updates. Newest first. Versions follow `MAJOR.MINOR.PATCH`.
   changed is put back.
 - **Network page.** Which programs are online and where, AI agents first; a note when an agent or unsigned program
   goes online for the first time; block a program from the network (Windows Firewall, needs the service).
+- **USB drives.** Scanned when plugged in; optionally, programs started from a USB drive are ended unless a rule allows them.
+- **Try a program safely** in Windows Sandbox (Windows Pro and up): no network, its folder read-only.
+- **Check reputation** of a process's file against CIRCL's public database of known files (only the SHA-256 is sent, after asking).
+- **Web protection** (off by default): known malware sites from URLhaus are blocked through the hosts file.
 
 ## 0.2.0
 

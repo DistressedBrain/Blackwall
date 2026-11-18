@@ -32,7 +32,8 @@ $notes = ($lines[($start + 1)..($end - 1)] -join "`n").Trim()
 
 $name = "Blackwall-$version-win-x64"
 $out = Join-Path $root 'publish'
-$stage = Join-Path $out $name
+# Built in its own folder, so an unpacked copy someone is running from publish\ is never in the way.
+$stage = Join-Path $out "staging\$name"
 if (Test-Path $stage) { Remove-Item $stage -Recurse -Force }
 New-Item -ItemType Directory $stage -Force | Out-Null
 
@@ -51,6 +52,13 @@ Get-ChildItem $stage -Filter *.pdb | Remove-Item
 foreach ($f in 'LICENSE', 'THIRD-PARTY-NOTICES.txt') { if (-not (Test-Path $f)) { throw "$f is missing." } }
 Copy-Item 'LICENSE' (Join-Path $stage 'LICENSE.txt')
 Copy-Item 'THIRD-PARTY-NOTICES.txt' (Join-Path $stage 'THIRD-PARTY-NOTICES.txt')
+
+# One-step install / uninstall (double-click; they run Blackwall.Service.exe setup).
+foreach ($f in 'Install Blackwall.cmd', 'Uninstall Blackwall.cmd') {
+  $from = Join-Path 'tools\package' $f
+  if (-not (Test-Path $from)) { throw "tools\package\$f is missing." }
+  Copy-Item $from (Join-Path $stage $f)
+}
 
 $zip = Join-Path $out "$name.zip"
 if (Test-Path $zip) { Remove-Item $zip }

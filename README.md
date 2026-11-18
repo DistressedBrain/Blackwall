@@ -25,24 +25,46 @@ model](https://img.shields.io/badge/model-human--authorized%20actions-2E8B57)
 
 ## Desktop client preview
 
-The Windows client (WPF, .NET 10) and its **protection engine** work on
-real data: protected folders, your rules, approvals, the activity log,
-saved versions with **Undo**, the **process watcher** (live process tree,
-launch chains with each program's own icon and AI-agent names,
-signatures, Task Manager-style CPU, memory and End task), **Hidden files**
-and the **quarantine vault**. The engine runs in the **Blackwall
-service**, which sees which program made each change, or inside the app
-when the service isn't installed. Without the Phase 3 kernel driver it
-can't hold a change back: it sees it right after it happens, asks you,
-and puts the previous version back if you say no. Microsoft Defender
-checks what AI agents and downloaded programs run, a program that
-scrambles many files is stopped and its changes undone, and the Network
-page shows which programs are online. Sample data is still available with
-`Blackwall.exe --demo`. Closed, Blackwall keeps running in
-the notification area and raises Windows notifications for changes. New
-versions are published as GitHub Releases: Blackwall finds them, shows what
-changed, and installs one when you click Install, after checking its
-checksum. Changes are listed in [`CHANGELOG.md`](CHANGELOG.md).
+The Windows app (WPF, .NET 10) and its protection engine work on real
+data. What it does today:
+
+**Protection**
+- **Protected folders and rules.** Every change is checked against your
+  rules. When an AI agent or an unsigned program changes something, you're
+  asked: Allow keeps it, Deny (or no answer) puts the previous version back.
+  Any recorded change can be **undone** later from Activity.
+- **Ransomware detection.** A program that scrambles many files within a
+  minute is ended, and everything it changed is put back.
+- **Malware scanning with Microsoft Defender.** Programs started from
+  Downloads or Temp, the commands AI agents run, and new programs in
+  protected folders are checked; malware is stopped or undone.
+- **USB drives** are scanned when plugged in; optionally, programs on them
+  aren't allowed to run.
+- **Web protection** (optional) blocks known malware sites.
+
+**Seeing what happens**
+- **Activity** and **Security status**: every decision with its reason,
+  threat types (AI agent, Virus, Malware, Hacker, Suspicious), a security
+  score and charts.
+- **Processes**: the live process tree with launch chains, icons, AI-agent
+  names, signatures, and Task Manager-style CPU, memory and End task.
+- **Network**: which programs are online and where, AI agents first, with
+  a per-program block.
+
+**Tools**
+- **Scans**: quick, folder and scheduled scans through Microsoft Defender.
+- **Quarantine**: a "quantum-locked" encrypted vault with a full history
+  and restore.
+- **Try a program safely** in Windows Sandbox, **check a file's
+  reputation**, and find leftovers in **Hidden files**.
+
+It runs as the **Blackwall service**, which sees which program made each
+change, or inside the app when the service isn't installed. Without the
+Phase 3 kernel driver it can't hold a change back; it sees it right after
+it happens and undoes what you don't approve. Closed, it keeps watching
+from the notification area. New versions are offered from GitHub Releases
+and installed when you click Install. Changes are listed in
+[`CHANGELOG.md`](CHANGELOG.md).
 
 ### Install
 
@@ -53,16 +75,21 @@ Runtime](https://dotnet.microsoft.com/download/dotnet/10.0).
 1. Download `Blackwall-<version>-win-x64.zip` and its `.sha256` from
    [Releases](https://github.com/DistressedBrain/Blackwall/releases), and
    check they match: `(Get-FileHash .\Blackwall-<version>-win-x64.zip).Hash`.
-2. Unpack it to `C:\Program Files\Blackwall` (as administrator).
-3. In an administrator PowerShell, install and start the service:
-   `& "C:\Program Files\Blackwall\Blackwall.Service.exe" install`
-4. Start `Blackwall.exe` from the Start menu or Explorer. The sidebar should
-   say **Service connected**.
+2. Unpack the zip anywhere and double-click **Install Blackwall.cmd**.
+   Windows asks once for administrator rights.
 
-To remove it: `& "C:\Program Files\Blackwall\Blackwall.Service.exe" uninstall`,
-then delete the folder and `C:\ProgramData\Blackwall`. Without the service,
-`Blackwall.exe` still protects your folders from inside the app, but can't
-tell which program made a change.
+That's all, for a first install and for upgrading any older copy, including
+ones from before the in-app updater. Setup closes a running Blackwall window
+(politely, never forced), backs up the installed files, puts the new ones in
+`C:\Program Files\Blackwall`, installs or moves the service, and starts
+Blackwall. If any step fails, the previous version is put back. Your
+settings, rules, history and quarantine are kept. From then on, new versions
+install from **Settings → Updates**.
+
+To remove it, double-click **Uninstall Blackwall.cmd** (your data stays in
+`C:\ProgramData\Blackwall` and `%LocalAppData%\Blackwall`; delete those too
+for a clean slate). Without the service, `Blackwall.exe` still protects your
+folders from inside the app, but can't tell which program made a change.
 
 <p align="center">
   <img src="docs/images/overview.png" alt="Overview: protection status, today's counts, recent activity and protection modules" width="900">
@@ -94,6 +121,8 @@ instead of being undone.
 | ![Approvals page with three held requests, each labelled with its type, and a proposed change](docs/images/approvals.png) | ![Activity log with the result and type of each event](docs/images/activity.png) |
 | **Processes** (live) | **Hidden files** (live) |
 | ![Live process tree filtered to svchost.exe under services.exe, with CPU, memory and I/O columns, End task, and resource use of the selected process](docs/images/processes.png) | ![Hidden files scan of a demo folder: a hidden file, a hidden folder and two hidden data streams](docs/images/hidden-files.png) |
+| **Network** (live) | **Scans** |
+| ![Network page filtered to AI agents: Claude's connections, each with its addresses and a Block button](docs/images/network.png) | ![Scans page: a folder scan with nothing found, Try a program safely, the scheduled scan and the history](docs/images/scans.png) |
 | **Protected locations** | **Kernel** |
 | ![Protected folders with per-folder policies](docs/images/protected-locations.png) | ![Kernel page: enforcement not installed yet, what the driver will add, and what works without it](docs/images/kernel.png) |
 
@@ -465,14 +494,18 @@ Done in user mode first, in this order:
     only, no code).
 4.  **Scans** (built). "Scan this folder" and scheduled scans of Downloads,
     startup entries and protected folders.
-5.  **USB and removable drives:** scan when plugged in, optional "ask
-    before running programs from a USB drive".
-6.  **Sandboxed first run:** start an unknown program in Windows Sandbox
-    instead of on the real system.
-7.  **File reputation (opt-in):** look up a file's hash with a public
-    malware database. Off by default, because it sends the hash out.
-8.  **Web and download protection:** dangerous-site and phishing lists
-    for downloads, via DNS filtering.
+5.  **USB and removable drives** (built): scan when plugged in, and
+    optionally end programs started from a USB drive unless a rule allows
+    them.
+6.  **Sandboxed first run** (built): "Try a program safely" starts it in
+    Windows Sandbox (Windows Pro and up), with no network and its folder
+    read-only.
+7.  **File reputation** (built, on request): "Check reputation" sends only
+    the file's SHA-256 to CIRCL's public database of known files, after
+    asking.
+8.  **Web protection** (built, off by default): known malware sites from
+    URLhaus are blocked through the hosts file. Phishing lists and real DNS
+    filtering come with Phase 5's secure DNS.
 9.  Change previews and file versioning (done), delegated-execution
     detection, policy protection.
 
